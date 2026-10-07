@@ -1,0 +1,625 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Unary Mathematical Processor — Turing Machine Simulator</title>
+  <meta name="description" content="College Project: Interactive Turing Machine Simulator for Unary Addition and Multiplication with formal state transitions, dynamic tape animation, and step-by-step execution.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body class="dark-theme">
+  <!-- Top Navigation / Header -->
+  <header class="app-header">
+    <div class="header-container">
+      <div class="brand">
+        <div class="brand-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="2" y="7" width="20" height="10" rx="2" stroke-linecap="round"></rect>
+            <path d="M12 2v5M12 17v5M8 12h.01M12 12h.01M16 12h.01"></path>
+          </svg>
+        </div>
+        <div>
+          <h1 class="brand-title">Unary Mathematical Processor</h1>
+          <p class="brand-subtitle">Theoretical Computer Science • Formal Turing Machine Simulator</p>
+        </div>
+      </div>
+
+      <div class="header-badges">
+        <span class="badge badge-accent">
+          <span class="status-dot"></span> Single-Tape Deterministic TM
+        </span>
+        <span class="badge badge-outline">M = (Q, Σ, Γ, δ, q₀, B, F)</span>
+        <button id="soundToggleBtn" class="btn btn-icon btn-ghost" title="Toggle Simulation Sounds" aria-label="Toggle Sound">
+          <span id="soundIcon">🔊</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Content Layout -->
+  <main class="main-layout">
+    <!-- Top Configuration & Input Bar -->
+    <section class="card config-card" aria-labelledby="config-heading">
+      <div class="config-row">
+        <!-- Operation Selector -->
+        <div class="control-group op-selector-group">
+          <label class="control-label" id="config-heading">Select Operation</label>
+          <div class="pill-tabs" role="tablist">
+            <button class="pill-tab active" id="opAdditionBtn" role="tab" aria-selected="true" data-op="addition">
+              <span class="op-icon">➕</span>
+              <span class="op-text">Unary Addition</span>
+              <span class="op-formula">1ᵐ B 1ⁿ ⟶ 1ᵐ⁺ⁿ</span>
+            </button>
+            <button class="pill-tab" id="opMultiplicationBtn" role="tab" aria-selected="false" data-op="multiplication">
+              <span class="op-icon">✖️</span>
+              <span class="op-text">Unary Multiplication</span>
+              <span class="op-formula">1ᵐ B 1ⁿ ⟶ 1ᵐˣⁿ</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Input Field & Live Parser -->
+        <div class="control-group input-field-group">
+          <div class="label-with-meta">
+            <label for="unaryInput" class="control-label">Unary Tape Input (1ᵐ B 1ⁿ)</label>
+            <span class="input-hint">Format: <code>1+B1+</code> (e.g. <code>111B11</code> for 3 + 2)</span>
+          </div>
+          <div class="input-wrapper">
+            <input 
+              type="text" 
+              id="unaryInput" 
+              class="cyber-input" 
+              placeholder="e.g. 111B11" 
+              value="111B11" 
+              autocomplete="off" 
+              spellcheck="false"
+              maxlength="32"
+            />
+            <button id="loadInputBtn" class="btn btn-primary btn-sm">Load to Tape</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Live Input Parser and Error Banners -->
+      <div id="validationBanner" class="validation-banner valid">
+        <div class="validation-status">
+          <span class="val-icon" id="valIcon">✓</span>
+          <span class="val-text" id="valText">Valid Unary Expression</span>
+        </div>
+        <div class="operand-breakdown" id="operandBreakdown">
+          <div class="operand-tag">
+            <span class="tag-label">Operand 1:</span>
+            <span class="tag-val" id="tagOp1">111 (3)</span>
+          </div>
+          <span class="operand-operator" id="tagOpSymbol">+</span>
+          <div class="operand-tag">
+            <span class="tag-label">Operand 2:</span>
+            <span class="tag-val" id="tagOp2">11 (2)</span>
+          </div>
+          <span class="operand-operator">=</span>
+          <div class="operand-tag result-tag">
+            <span class="tag-label">Expected:</span>
+            <span class="tag-val" id="tagExpected">11111 (5)</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Prominent Virtual Turing Machine Tape Section -->
+    <section class="card tape-card" aria-label="Virtual Turing Machine Tape">
+      <div class="tape-header">
+        <div class="tape-title-block">
+          <h2 class="card-title">Virtual Turing Machine Tape</h2>
+          <span class="card-caption">Infinite bilateral memory tape with active mechanical read/write head</span>
+        </div>
+        <div class="tape-actions">
+          <button id="centerHeadBtn" class="btn btn-xs btn-outline" title="Recenter view on current head position">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="10"></circle>
+              <line x1="12" y1="2" x2="12" y2="6"></line>
+              <line x1="12" y1="18" x2="12" y2="22"></line>
+              <line x1="2" y1="12" x2="6" y2="12"></line>
+              <line x1="18" y1="12" x2="22" y2="12"></line>
+            </svg>
+            Center on Head
+          </button>
+          <span class="tape-symbol-legend">
+            <span class="legend-chip chip-one">1 : Digit</span>
+            <span class="legend-chip chip-b">B : Sep</span>
+            <span class="legend-chip chip-blank">□ : Blank</span>
+          </span>
+        </div>
+      </div>
+
+      <!-- The Animated Tape Container -->
+      <div class="tape-stage-wrapper">
+        <!-- Mechanical Read/Write Head Indicator -->
+        <div class="head-unit" id="headUnit">
+          <div class="head-badge">
+            <span class="head-label">TM HEAD</span>
+            <span class="head-state-badge" id="headStateBadge">q0</span>
+          </div>
+          <div class="head-arrow"></div>
+        </div>
+
+        <!-- Scrolling Tape Strip -->
+        <div class="tape-track-outer" id="tapeTrackOuter">
+          <div class="tape-cells-container" id="tapeCellsContainer">
+            <!-- Dynamic Cells injected here via JavaScript -->
+          </div>
+        </div>
+
+        <!-- Tape Boundary Shadows for Infinite Illusion -->
+        <div class="tape-shadow-left"></div>
+        <div class="tape-shadow-right"></div>
+      </div>
+
+      <!-- Realtime Head Telemetry HUD -->
+      <div class="telemetry-bar">
+        <div class="telemetry-item">
+          <span class="tel-label">Current State</span>
+          <span class="tel-value state-highlight" id="telState">q0</span>
+        </div>
+        <div class="telemetry-item">
+          <span class="tel-label">Read Symbol</span>
+          <span class="tel-value" id="telSymbol">1</span>
+        </div>
+        <div class="telemetry-item">
+          <span class="tel-label">Head Position</span>
+          <span class="tel-value" id="telHeadPos">Index: 0</span>
+        </div>
+        <div class="telemetry-item">
+          <span class="tel-label">Cycle / Step</span>
+          <span class="tel-value" id="telStep">0</span>
+        </div>
+        <div class="telemetry-item tel-wide">
+          <span class="tel-label">Active Action / Transition</span>
+          <span class="tel-value action-highlight" id="telAction">Ready to start simulation</span>
+        </div>
+        <div class="telemetry-item">
+          <span class="tel-label">Machine Status</span>
+          <span class="status-pill status-ready" id="telStatus">READY</span>
+        </div>
+      </div>
+
+      <!-- Execution Controls Strip -->
+      <div class="controls-toolbar">
+        <div class="playback-buttons">
+          <button id="runBtn" class="btn btn-success btn-lg">
+            <span class="btn-icon">▶</span>
+            <span id="runBtnText">Start Simulation</span>
+          </button>
+          <button id="stepBtn" class="btn btn-primary btn-lg">
+            <span class="btn-icon">⏭</span>
+            <span>Single Step</span>
+          </button>
+          <button id="pauseBtn" class="btn btn-warning btn-lg" disabled>
+            <span class="btn-icon">⏸</span>
+            <span>Pause</span>
+          </button>
+          <button id="resetBtn" class="btn btn-danger btn-lg">
+            <span class="btn-icon">↺</span>
+            <span>Reset Tape</span>
+          </button>
+          <button id="fastForwardBtn" class="btn btn-secondary btn-lg" title="Run to halt without delay">
+            <span class="btn-icon">⚡</span>
+            <span>Run to End</span>
+          </button>
+        </div>
+
+        <!-- Speed Adjustment Slider -->
+        <div class="speed-control-wrapper">
+          <div class="speed-labels">
+            <span class="speed-title">Simulation Speed:</span>
+            <span class="speed-val" id="speedDisplay">Medium (350ms)</span>
+          </div>
+          <div class="speed-slider-container">
+            <span class="speed-min">Slow</span>
+            <input 
+              type="range" 
+              id="speedSlider" 
+              min="30" 
+              max="1000" 
+              value="350" 
+              step="10" 
+              class="cyber-range" 
+              aria-label="Simulation Speed"
+            >
+            <span class="speed-max">Fast</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Two-Column Grid: Results & Test Cases & State Transition Table -->
+    <div class="grid-2col">
+      <!-- Left Column: Results Card & Presets -->
+      <div class="col-left">
+        <!-- Computation Result Display Card -->
+        <section class="card result-card" id="resultCard" aria-labelledby="result-heading">
+          <div class="card-header-clean">
+            <h2 class="card-title" id="result-heading">Mathematical Result & Verification</h2>
+            <span class="result-badge-status" id="resultBadgeStatus">Simulation Pending</span>
+          </div>
+
+          <div class="result-display-grid">
+            <div class="result-box">
+              <span class="res-box-label">Unary Tape Input</span>
+              <span class="res-box-content mono" id="resInput">111B11</span>
+            </div>
+            <div class="result-box">
+              <span class="res-box-label">Arithmetic</span>
+              <span class="res-box-content arithmetic" id="resArithmetic">3 + 2 = 5</span>
+            </div>
+            <div class="result-box highlight-box">
+              <span class="res-box-label">Current Unary Output on Tape</span>
+              <span class="res-box-content mono output-glow" id="resUnaryOutput">11111</span>
+            </div>
+            <div class="result-box">
+              <span class="res-box-label">Expected Result</span>
+              <span class="res-box-content verification" id="resDecimal">5</span>
+            </div>
+          </div>
+
+          <div class="stats-footer">
+            <div class="stat-item">
+              <span class="stat-name">Total Execution Steps:</span>
+              <span class="stat-data" id="statSteps">0 steps</span>
+            </div>
+            <div class="stat-item">
+              <span class="stat-name">Tape Cells Modified:</span>
+              <span class="stat-data" id="statCells">0 cells</span>
+            </div>
+            <div class="stat-item">
+              <span class="stat-name">Halting State:</span>
+              <span class="stat-data" id="statHaltState">q_halt (ACCEPT)</span>
+            </div>
+          </div>
+        </section>
+
+        <!-- Test Cases & Quick Presets Section -->
+        <section class="card presets-card" aria-labelledby="presets-heading">
+          <div class="card-header-clean">
+            <h2 class="card-title" id="presets-heading">Test Cases & Verification Suite</h2>
+            <span class="card-caption">Click any test case to load instantly into the Turing Machine</span>
+          </div>
+
+          <div class="presets-section">
+            <div class="presets-category-title">
+              <span class="category-indicator valid-dot"></span>
+              <span>Valid Unary Test Cases (Click to load):</span>
+            </div>
+            <div class="preset-chips-grid" id="validPresetsGrid">
+              <!-- Dynamically populated or static valid presets -->
+              <button class="preset-chip" data-input="1B1" data-op="addition">
+                <span class="chip-input">1B1</span>
+                <span class="chip-meaning">1 + 1 = 2</span>
+              </button>
+              <button class="preset-chip" data-input="11B1" data-op="addition">
+                <span class="chip-input">11B1</span>
+                <span class="chip-meaning">2 + 1 = 3</span>
+              </button>
+              <button class="preset-chip active-preset" data-input="111B11" data-op="addition">
+                <span class="chip-input">111B11</span>
+                <span class="chip-meaning">3 + 2 = 5</span>
+              </button>
+              <button class="preset-chip" data-input="1111B11" data-op="addition">
+                <span class="chip-input">1111B11</span>
+                <span class="chip-meaning">4 + 2 = 6</span>
+              </button>
+              <button class="preset-chip" data-input="1111B111" data-op="addition">
+                <span class="chip-input">1111B111</span>
+                <span class="chip-meaning">4 + 3 = 7</span>
+              </button>
+              <button class="preset-chip" data-input="11B11" data-op="multiplication">
+                <span class="chip-input">11B11</span>
+                <span class="chip-meaning">2 × 2 = 4</span>
+              </button>
+              <button class="preset-chip" data-input="111B11" data-op="multiplication">
+                <span class="chip-input">111B11</span>
+                <span class="chip-meaning">3 × 2 = 6</span>
+              </button>
+            </div>
+          </div>
+
+          <div class="presets-section invalid-section">
+            <div class="presets-category-title">
+              <span class="category-indicator invalid-dot"></span>
+              <span>Invalid Test Cases (To test input validator & rejection):</span>
+            </div>
+            <div class="preset-chips-grid invalid-grid" id="invalidPresetsGrid">
+              <button class="preset-chip invalid-chip" data-input="112B11" data-reason="Contains invalid digit '2'">
+                <span class="chip-input">112B11</span>
+                <span class="chip-reason">Digit '2'</span>
+              </button>
+              <button class="preset-chip invalid-chip" data-input="111BB11" data-reason="Multiple separators 'BB'">
+                <span class="chip-input">111BB11</span>
+                <span class="chip-reason">Double 'BB'</span>
+              </button>
+              <button class="preset-chip invalid-chip" data-input="B111" data-reason="Missing operand 1 (leading 'B')">
+                <span class="chip-input">B111</span>
+                <span class="chip-reason">Leading 'B'</span>
+              </button>
+              <button class="preset-chip invalid-chip" data-input="111B" data-reason="Missing operand 2 (trailing 'B')">
+                <span class="chip-input">111B</span>
+                <span class="chip-reason">Trailing 'B'</span>
+              </button>
+              <button class="preset-chip invalid-chip" data-input="abc" data-reason="Alphabetic letters rejected">
+                <span class="chip-input">abc</span>
+                <span class="chip-reason">Letters</span>
+              </button>
+              <button class="preset-chip invalid-chip" data-input="111" data-reason="No separator symbol 'B'">
+                <span class="chip-input">111</span>
+                <span class="chip-reason">No 'B'</span>
+              </button>
+            </div>
+          </div>
+        </section>
+      </div>
+
+      <!-- Right Column: Transition Table & Trace Log -->
+      <div class="col-right">
+        <!-- Interactive State Transition Table -->
+        <section class="card transition-card" aria-labelledby="matrix-heading">
+          <div class="card-header-clean">
+            <div class="title-with-pill">
+              <h2 class="card-title" id="matrix-heading">State Transition Matrix δ(q, σ)</h2>
+              <span class="pill-mini" id="activeMachinePill">Addition Machine</span>
+            </div>
+            <span class="matrix-legend">Active transition glows in real time</span>
+          </div>
+
+          <div class="table-responsive-wrapper">
+            <table class="transition-table" id="transitionTable">
+              <!-- Dynamically rendered based on active machine -->
+            </table>
+          </div>
+
+          <div class="state-dictionary-box" id="stateDictionaryBox">
+            <span class="dict-title">Active State Breakdown:</span>
+            <p class="dict-text" id="stateDescText">q0: Initial state. Scanning operand 1 from left to right.</p>
+          </div>
+        </section>
+
+        <!-- Execution Trace Log -->
+        <section class="card trace-card" aria-labelledby="trace-heading">
+          <div class="card-header-clean">
+            <h2 class="card-title" id="trace-heading">Step-by-Step Execution Trace</h2>
+            <div class="trace-actions">
+              <button id="copyTraceBtn" class="btn btn-xs btn-outline" title="Copy trace history">Copy Trace</button>
+              <button id="clearTraceBtn" class="btn btn-xs btn-ghost" title="Clear trace history">Clear Log</button>
+            </div>
+          </div>
+
+          <div class="trace-log-container" id="traceLogContainer">
+            <div class="trace-entry placeholder-entry">
+              Simulation not started yet. Press <strong>Start Simulation</strong> or <strong>Single Step</strong> to observe transitions.
+            </div>
+          </div>
+        </section>
+      </div>
+    </div>
+
+    <!-- Algorithm & Educational Theory Section -->
+    <section class="card theory-card" aria-labelledby="theory-heading">
+      <div class="card-header-clean">
+        <div>
+          <h2 class="card-title" id="theory-heading">Algorithm & Automata Theory Documentation</h2>
+          <span class="card-caption">Comprehensive theoretical foundation for college project demonstration</span>
+        </div>
+      </div>
+
+      <div class="theory-tabs-nav" role="tablist">
+        <button class="theory-tab-btn active" data-target="theory-unary">1. Unary Number System</button>
+        <button class="theory-tab-btn" data-target="theory-tm">2. Formal Turing Machine Model</button>
+        <button class="theory-tab-btn" data-target="theory-addition">3. Addition Algorithm</button>
+        <button class="theory-tab-btn" data-target="theory-multiplication">4. Multiplication Algorithm</button>
+        <button class="theory-tab-btn" data-target="theory-states">5. State Dictionary</button>
+      </div>
+
+      <div class="theory-content-panels">
+        <!-- Panel 1: Unary Number System -->
+        <div class="theory-panel active" id="theory-unary">
+          <div class="theory-grid">
+            <div class="theory-text">
+              <h3>What is Unary Notation?</h3>
+              <p>The <strong>unary numeral system</strong> (base-1) is the simplest numeral system used in mathematics and theoretical computer science. Every positive natural number $k$ is represented by a sequence of $k$ identical tally marks, conventionally using the symbol <code>1</code>:</p>
+              <ul class="theory-list">
+                <li>$1$ is represented as <code>1</code></li>
+                <li>$2$ is represented as <code>11</code></li>
+                <li>$3$ is represented as <code>111</code></li>
+                <li>$5$ is represented as <code>11111</code></li>
+              </ul>
+              <p>In theoretical automata analysis, unary notation provides a clean, elegant foundation because arithmetic operations reduce to structural tape operations without the overhead of decimal/binary positional borrow, carry, or base conversion tables.</p>
+            </div>
+            <div class="theory-card-box">
+              <h4>Input Representation Format</h4>
+              <p class="box-formula"><code>1ᵐ B 1ⁿ</code></p>
+              <p>Where <code>1ᵐ</code> represents the first operand $m$, <code>B</code> acts as the delimiter/separator between the two numbers, and <code>1ⁿ</code> represents the second operand $n$. Blanks outside the input are represented by the standard automata blank symbol <code>□</code>.</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Panel 2: Turing Machine Formal Model -->
+        <div class="theory-panel" id="theory-tm">
+          <div class="theory-grid">
+            <div class="theory-text">
+              <h3>Formal Definition: The 7-Tuple Model</h3>
+              <p>A deterministic single-tape Turing Machine is formally defined as a 7-tuple:</p>
+              <div class="math-block">M = (Q, Σ, Γ, δ, q₀, B, F)</div>
+              <table class="theory-table">
+                <thead>
+                  <tr>
+                    <th>Component</th>
+                    <th>Formal Symbol</th>
+                    <th>Role in This Simulator</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td><strong>Finite States</strong></td>
+                    <td><code>Q</code></td>
+                    <td>Set of internal control states: <code>{q₀, q₁, q₂, q₃, q_halt}</code></td>
+                  </tr>
+                  <tr>
+                    <td><strong>Input Alphabet</strong></td>
+                    <td><code>Σ</code></td>
+                    <td>Permitted input symbols: <code>{ 1, B }</code></td>
+                  </tr>
+                  <tr>
+                    <td><strong>Tape Alphabet</strong></td>
+                    <td><code>Γ</code></td>
+                    <td>All symbols writable on tape: <code>{ 1, B, □, X, Y }</code> (where Σ ⊂ Γ)</td>
+                  </tr>
+                  <tr>
+                    <td><strong>Transition Function</strong></td>
+                    <td><code>δ</code></td>
+                    <td>Mapping: <code>Q × Γ ⟶ Q × Γ × { L, R, S }</code></td>
+                  </tr>
+                  <tr>
+                    <td><strong>Start State</strong></td>
+                    <td><code>q₀</code></td>
+                    <td>Initial active state when machine begins execution</td>
+                  </tr>
+                  <tr>
+                    <td><strong>Blank Symbol</strong></td>
+                    <td><code>B / □</code></td>
+                    <td>Represents unwritten cells on the infinite tape: <code>□</code></td>
+                  </tr>
+                  <tr>
+                    <td><strong>Halting / Accept States</strong></td>
+                    <td><code>F</code></td>
+                    <td>Final state: <code>{ q_halt }</code> signifying successful computation</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- Panel 3: Addition Algorithm -->
+        <div class="theory-panel" id="theory-addition">
+          <div class="theory-grid">
+            <div class="theory-text">
+              <h3>How the Unary Addition Algorithm Works</h3>
+              <p>The addition of $m$ and $n$ on a Turing Machine uses the classic <strong>"Bridge & Erase"</strong> technique:</p>
+              <ol class="theory-steps">
+                <li><strong>Phase 1 (Bridging the Gap):</strong> The tape starts with $m$ ones, followed by separator <code>B</code>, followed by $n$ ones. The TM starts in state $q_0$ at the first <code>1</code>, moves right across operand 1 until it encounters separator <code>B</code>. It replaces <code>B</code> with <code>1</code>. The tape now contains $(m + 1 + n)$ ones.</li>
+                <li><strong>Phase 2 (Locating the End):</strong> The machine transitions to state $q_1$ and moves right across the second operand's 1s until it hits the right blank boundary <code>□</code>. It then takes one step Left to point directly at the rightmost <code>1</code>.</li>
+                <li><strong>Phase 3 (Balancing the Count):</strong> In state $q_2$, the machine replaces that rightmost <code>1</code> with blank <code>□</code>. This removes the extra <code>1</code> introduced in Phase 1, leaving exactly $m + n$ ones on the tape!</li>
+                <li><strong>Phase 4 (Rewind & Park):</strong> In state $q_3$, the head moves left across all the result 1s until it reaches the left blank <code>□</code>. It steps one cell Right to park on the first <code>1</code> and halts in state $q_{halt}$.</li>
+              </ol>
+            </div>
+            <div class="theory-card-box">
+              <h4>Complexity Analysis</h4>
+              <p><strong>Time Complexity:</strong> $T(n) = O(m + n)$. The head scans right across the entire input length and rewinds once. Total steps $\approx 2(m + n) + 3$.</p>
+              <p><strong>Space Complexity:</strong> $S(n) = O(m + n)$. The computation is in-place and requires no extra auxiliary tape cells.</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Panel 4: Multiplication Algorithm -->
+        <div class="theory-panel" id="theory-multiplication">
+          <div class="theory-grid">
+            <div class="theory-text">
+              <h3>How Unary Multiplication Works (Nested Iteration)</h3>
+              <p>Multiplication $m \times n$ is computed as repeated addition (adding $n$ to an accumulator $m$ times):</p>
+              <ol class="theory-steps">
+                <li><strong>Setup:</strong> The machine scans past $1^m B 1^n$ and places a boundary marker <code>B</code> to mark the product accumulator region: <code>1ᵐ B 1ⁿ B □</code>.</li>
+                <li><strong>Outer Loop (Multiplicand):</strong> For each <code>1</code> in the first operand, the TM marks it as <code>X</code> and crosses over to the second operand.</li>
+                <li><strong>Inner Loop (Multiplier Replication):</strong> For each <code>1</code> in the second operand, the TM marks it as <code>Y</code>, travels past the second separator to the product zone, and appends a <code>1</code> to the accumulator.</li>
+                <li><strong>Multiplier Reset:</strong> Once all 1s of the second operand are copied for the current <code>X</code>, the machine rewinds and converts all <code>Y</code> marks back to <code>1</code>, then returns to the first operand.</li>
+                <li><strong>Cleanup:</strong> Once all 1s of operand 1 are marked <code>X</code>, the TM erases the input operands and separators, parking cleanly on the final product <code>1ᵐˣⁿ</code>!</li>
+              </ol>
+            </div>
+            <div class="theory-card-box">
+              <h4>Complexity Analysis</h4>
+              <p><strong>Time Complexity:</strong> $O(m \cdot n^2)$ due to head travel back and forth across the tape during replication.</p>
+              <p><strong>Space Complexity:</strong> $O(m + n + m \cdot n)$ to store the multiplicand, multiplier, and product accumulator.</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Panel 5: State Dictionary -->
+        <div class="theory-panel" id="theory-states">
+          <div class="theory-grid">
+            <div class="theory-text">
+              <h3>Complete State Dictionary</h3>
+              <p>Below is the formal specification of each state in the simulator:</p>
+              <table class="theory-table">
+                <thead>
+                  <tr>
+                    <th>State</th>
+                    <th>Machine</th>
+                    <th>Formal Role</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td><code>q0</code></td>
+                    <td>Addition / Multiplication</td>
+                    <td>Scan multiplicand / operand 1; initiate mark or bridge</td>
+                  </tr>
+                  <tr>
+                    <td><code>q1</code></td>
+                    <td>Addition / Multiplication</td>
+                    <td>Traverse operand 2 towards boundary</td>
+                  </tr>
+                  <tr>
+                    <td><code>q2</code></td>
+                    <td>Addition</td>
+                    <td>Erase terminal 1 to correct tally to $m + n$</td>
+                  </tr>
+                  <tr>
+                    <td><code>q3</code></td>
+                    <td>Addition</td>
+                    <td>Rewind head back to the start of the result</td>
+                  </tr>
+                  <tr>
+                    <td><code>q_init</code></td>
+                    <td>Multiplication</td>
+                    <td>Setup accumulator delimiter on the tape</td>
+                  </tr>
+                  <tr>
+                    <td><code>q4, q_ret</code></td>
+                    <td>Multiplication</td>
+                    <td>Write product 1 in accumulator and rewind</td>
+                  </tr>
+                  <tr>
+                    <td><code>q5, q6</code></td>
+                    <td>Multiplication</td>
+                    <td>Restore marked symbols for next replication cycle</td>
+                  </tr>
+                  <tr>
+                    <td><code>q_halt</code></td>
+                    <td>All Machines</td>
+                    <td>Accept state: computation successfully completed</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Project Footer -->
+    <footer class="app-footer">
+      <div class="footer-content">
+        <p><strong>Unary Mathematical Processor — Turing Machine Simulator</strong></p>
+        <p class="footer-meta">Designed for College Project & Theory of Computation / Formal Languages & Automata Theory Demonstration</p>
+        <p class="footer-badge">Zero external backend dependencies • Fully client-side HTML5/CSS3/Vanilla JS</p>
+      </div>
+    </footer>
+  </main>
+
+  <!-- Script Inclusions (Vanilla JS - Works with file:// or HTTP) -->
+  <script src="js/machines.js"></script>
+  <script src="js/sound.js"></script>
+  <script src="js/turing-machine.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
