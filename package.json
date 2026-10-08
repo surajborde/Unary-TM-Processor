@@ -1,0 +1,25 @@
+{
+  "name": "unary-tm-processor",
+  "version": "1.0.0",
+  "description": "College Project: Theoretical Computer Science / Formal Languages & Automata Theory - Interactive Turing Machine Simulation for Unary Arithmetic Operations",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron ."
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/surajborde/Unary-TM-Processor.git"
+  },
+  "keywords": [],
+  "author": "Suraj Borde",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/surajborde/Unary-TM-Processor/issues"
+  },
+  "homepage": "https://github.com/surajborde/Unary-TM-Processor#readme",
+  "devDependencies": {
+    "@electron/packager": "^20.3.0",
+    "electron": "^44.7.0"
+  }
+}
